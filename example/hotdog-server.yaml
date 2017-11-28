@@ -1,0 +1,36 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+    name: hotdog-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: hotdog
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: hotdog-deployment
+  labels:
+    app: hotdog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hotdog
+  template:
+    metadata:
+      labels:
+        app: hotdog
+    spec:
+      containers:
+      - name: hotdog-server
+        image: gcr.io/kubeflow/hotdogserver@sha256:585bf8fa5dc35675b96c91f12c1ef7d19aa1a42ec4c50f2e23c6dbdd677a6adf
+        args: ["--server_addr", "inception-service"]
+        ports:
+        - containerPort: 5000

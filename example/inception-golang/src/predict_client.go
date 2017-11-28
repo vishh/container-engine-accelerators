@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"strings"
 
 	"golang.org/x/net/context"
@@ -79,9 +78,9 @@ func main() {
 			panic(err)
 		}
 		if !strings.Contains(strings.ToLower(img.Filename), "hotdog") {
-			c.Writer.WriteString("Not a hotdog")
+			c.Writer.WriteString("<font size=\"6\">Not a hotdog</font>")
 		} else {
-			c.Writer.WriteString("It's a hotdog")
+			c.Writer.WriteString("<font size=\"6\">It's a hotdog!</font>")
 		}
 	})
 
@@ -90,19 +89,28 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		_ = newInceptionPredictRequest(img.Data)
-
-	})
-
-	//	r.Run(":5000")
-	if *imageFile != "" {
-		var pr *pb.PredictRequest
-		imgPath, err := filepath.Abs(flag.Arg(0))
+		pr := newInceptionPredictRequest(img.Data)
+		resp, err := client.Predict(context.Background(), pr)
 		if err != nil {
-			log.Fatalln(err)
+			fmt.Println(err)
+			return
 		}
 
-		imageBytes, err := ioutil.ReadFile(imgPath)
+		if val, ok := resp.Outputs["classes"]; ok {
+			log.Println(string(val.StringVal[0]))
+			if strings.Contains(string(val.StringVal[0]), "hotdog") {
+				c.Writer.WriteString("<font size=\"6\">It's a hotdog!</font>")
+			} else {
+				c.Writer.WriteString("<font size=\"6\">Not a hotdog</font>")
+			}
+		}
+	})
+
+	if *imageFile == "" {
+		r.Run(":5000")
+	} else {
+		var pr *pb.PredictRequest
+		imageBytes, err := ioutil.ReadFile(*imageFile)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -112,9 +120,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		for k, v := range resp.Outputs {
-			fmt.Println(k, v)
-		}
+		log.Printf("%q\n", string(resp.Outputs["classes"].StringVal[0]))
 	}
 }
 
